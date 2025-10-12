@@ -63,11 +63,11 @@ local function CreateGUI()
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = game.CoreGui
 
-    -- Основной фрейм с улучшенным дизайном
+    -- Основной фрейм с увеличенными размерами
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.new(0, 500, 0, 600)
-    MainFrame.Position = UDim2.new(0.5, -250, 0.5, -300)
+    MainFrame.Size = UDim2.new(0, 550, 0, 650) -- Увеличил ширину и высоту
+    MainFrame.Position = UDim2.new(0.5, -275, 0.5, -325)
     MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
     MainFrame.BorderSizePixel = 0
     MainFrame.ClipsDescendants = true
@@ -146,10 +146,10 @@ local function CreateGUI()
     TabContainer.BackgroundTransparency = 1
     TabContainer.Parent = MainFrame
 
-    -- Навигация с улучшенным дизайном
+    -- Навигация с увеличенной шириной
     local Navigation = Instance.new("Frame")
     Navigation.Name = "Navigation"
-    Navigation.Size = UDim2.new(0, 140, 1, 0)
+    Navigation.Size = UDim2.new(0, 160, 1, 0) -- Увеличил ширину
     Navigation.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     Navigation.BorderSizePixel = 0
     Navigation.Parent = TabContainer
@@ -158,11 +158,11 @@ local function CreateGUI()
     NavCorner.CornerRadius = UDim.new(0, 10)
     NavCorner.Parent = Navigation
 
-    -- Контент с улучшенным дизайном
+    -- Контент с увеличенной шириной
     local Content = Instance.new("Frame")
     Content.Name = "Content"
-    Content.Size = UDim2.new(1, -150, 1, -20)
-    Content.Position = UDim2.new(0, 150, 0, 10)
+    Content.Size = UDim2.new(1, -170, 1, -20) -- Увеличил ширину
+    Content.Position = UDim2.new(0, 170, 0, 10)
     Content.BackgroundTransparency = 1
     Content.Parent = TabContainer
 
@@ -182,8 +182,8 @@ local function CreateGUI()
         
         local NavButton = Instance.new("TextButton")
         NavButton.Name = buttonName
-        NavButton.Size = UDim2.new(1, -10, 0, 45)
-        NavButton.Position = UDim2.new(0, 5, 0, 10 + (i-1)*55)
+        NavButton.Size = UDim2.new(1, -10, 0, 50) -- Увеличил высоту кнопок
+        NavButton.Position = UDim2.new(0, 5, 0, 10 + (i-1)*60)
         NavButton.BackgroundColor3 = buttonName == CurrentTab and Color3.fromRGB(40, 40, 40) or Color3.fromRGB(30, 30, 30)
         NavButton.BorderSizePixel = 0
         NavButton.Text = icon .. " " .. buttonName
@@ -243,34 +243,34 @@ local function CreateGUI()
                 return
             end
             SafeToggle("AimBot", state, StartAimBot, StopAimBot)
-        end, Color3.fromRGB(255, 50, 50))
+        end)
         AimBotFrame.Parent = Content
 
         -- Team Check переключатель
         local TeamCheckFrame = CreateToggle("Team Check", "Don't target teammates", Settings.AimBot.TeamCheck, function(state)
             Settings.AimBot.TeamCheck = state
-        end, Color3.fromRGB(100, 100, 255))
+        end)
         TeamCheckFrame.Position = UDim2.new(0, 0, 0, 80)
         TeamCheckFrame.Parent = Content
 
         -- Auto Shoot переключатель
         local AutoShootFrame = CreateToggle("Auto Shoot", "Automatically shoot at target", Settings.AimBot.AutoShoot, function(state)
             Settings.AimBot.AutoShoot = state
-        end, Color3.fromRGB(255, 100, 100))
+        end)
         AutoShootFrame.Position = UDim2.new(0, 0, 0, 150)
         AutoShootFrame.Parent = Content
 
         -- FOV слайдер
         local FOVFrame = CreateSlider("Aim FOV", 10, 100, Settings.AimBot.FOV, function(value)
             Settings.AimBot.FOV = value
-        end, Color3.fromRGB(0, 150, 255))
+        end)
         FOVFrame.Position = UDim2.new(0, 0, 0, 230)
         FOVFrame.Parent = Content
 
         -- Smoothness слайдер
         local SmoothFrame = CreateSlider("Smoothness", 0.1, 1, Settings.AimBot.Smoothness, function(value)
             Settings.AimBot.Smoothness = value
-        end, Color3.fromRGB(150, 0, 255))
+        end)
         SmoothFrame.Position = UDim2.new(0, 0, 0, 310)
         SmoothFrame.Parent = Content
 
@@ -294,7 +294,7 @@ local function CreateGUI()
                 return
             end
             SafeToggle("ESP", state, StartESP, ClearESP)
-        end, Color3.fromRGB(50, 255, 50))
+        end)
         ESPFrame.Parent = Content
 
         -- Team ESP цвет
@@ -323,14 +323,14 @@ local function CreateGUI()
         local SpeedFrame = CreateSlider("Walk Speed", 16, 100, Settings.Movement.Speed, function(value)
             Settings.Movement.Speed = value
             ApplySpeed()
-        end, Color3.fromRGB(255, 255, 0))
+        end)
         SpeedFrame.Parent = Content
 
         -- Jump power
         local JumpFrame = CreateSlider("Jump Power", 50, 200, Settings.Movement.JumpPower, function(value)
             Settings.Movement.JumpPower = value
             ApplyJump()
-        end, Color3.fromRGB(255, 150, 0))
+        end)
         JumpFrame.Position = UDim2.new(0, 0, 0, 80)
         JumpFrame.Parent = Content
     end
@@ -360,8 +360,8 @@ local function CreateGUI()
         ResetButton.Parent = Content
     end
 
-    -- Улучшенная функция создания переключателей
-    function CreateToggle(name, description, default, callback, accentColor)
+    -- Улучшенная функция создания переключателей с красным/зеленым
+    function CreateToggle(name, description, default, callback)
         local frame = Instance.new("Frame")
         frame.Size = UDim2.new(1, 0, 0, 60)
         frame.BackgroundTransparency = 1
@@ -391,7 +391,7 @@ local function CreateGUI()
         local toggle = Instance.new("TextButton")
         toggle.Size = UDim2.new(0, 40, 0, 20)
         toggle.Position = UDim2.new(1, -45, 0, 10)
-        toggle.BackgroundColor3 = default and accentColor or Color3.fromRGB(60, 60, 60)
+        toggle.BackgroundColor3 = default and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 50, 50) -- Зеленый/Красный
         toggle.BorderSizePixel = 0
         toggle.Text = ""
         toggle.Parent = frame
@@ -408,7 +408,7 @@ local function CreateGUI()
             -- Анимация изменения цвета
             local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
             local tween = TweenService:Create(toggle, tweenInfo, {
-                BackgroundColor3 = newState and accentColor or Color3.fromRGB(60, 60, 60)
+                BackgroundColor3 = newState and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 50, 50)
             })
             tween:Play()
             
@@ -419,7 +419,7 @@ local function CreateGUI()
     end
 
     -- Улучшенная функция создания слайдеров
-    function CreateSlider(name, min, max, default, callback, accentColor)
+    function CreateSlider(name, min, max, default, callback)
         local frame = Instance.new("Frame")
         frame.Size = UDim2.new(1, 0, 0, 70)
         frame.BackgroundTransparency = 1
@@ -448,7 +448,7 @@ local function CreateGUI()
 
         local fill = Instance.new("Frame")
         fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-        fill.BackgroundColor3 = accentColor
+        fill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
         fill.BorderSizePixel = 0
         fill.Parent = slider
 
@@ -684,8 +684,325 @@ function ShowSafetyNotification(text)
     end)
 end
 
--- Остальные функции (AimBot, ESP, Movement) остаются такими же как в предыдущем коде
--- [Здесь должен быть код AimBot, ESP, Movement из предыдущих сообщений]
+-- Система уведомлений
+local function CreateNotificationSystem()
+    local Notifications = Instance.new("ScreenGui")
+    Notifications.Name = "Notifications"
+    Notifications.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    Notifications.Parent = game.CoreGui
+    return Notifications
+end
+
+function ShowNotification(text, color)
+    if not Settings.Notifications.Enabled then return end
+    
+    local notification = Instance.new("Frame")
+    notification.Size = UDim2.new(0, 300, 0, 60)
+    notification.Position = UDim2.new(1, -320, 1, -70)
+    notification.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    notification.BorderSizePixel = 0
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = notification
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color
+    stroke.Thickness = 2
+    stroke.Parent = notification
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -20, 1, -20)
+    label.Position = UDim2.new(0, 10, 0, 10)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 14
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = notification
+    
+    notification.Parent = GUI:FindFirstChild("Notifications") or CreateNotificationSystem()
+    
+    -- Анимация появления
+    notification:TweenPosition(UDim2.new(1, -320, 1, -140), "Out", "Quad", 0.3, true)
+    
+    -- Автоудаление через 3 секунды
+    delay(3, function()
+        if notification then
+            notification:TweenPosition(UDim2.new(1, -320, 1, -70), "Out", "Quad", 0.3, true)
+            wait(0.3)
+            notification:Destroy()
+        end
+    end)
+end
+
+-- AimBot система
+function StartAimBot()
+    if ActiveConnections.AimBot then return end
+    
+    ActiveConnections.AimBot = RunService.Heartbeat:Connect(function()
+        if not Settings.AimBot.Enabled then return end
+        
+        local character = LocalPlayer.Character
+        if not character then return end
+        
+        local humanoid = character:FindFirstChild("Humanoid")
+        local root = character:FindFirstChild("HumanoidRootPart")
+        if not humanoid or not root then return end
+        
+        -- Проверяем текущую цель
+        if currentTarget then
+            local targetPlayer = Players:GetPlayerFromCharacter(currentTarget)
+            if not IsValidTarget(currentTarget, targetPlayer) then
+                currentTarget = nil
+                ShowNotification("Target Lost", Color3.fromRGB(255, 165, 0))
+            end
+        end
+        
+        -- Поиск новой цели если текущей нет или она умерла
+        if not currentTarget or targetSwitchCooldown <= 0 then
+            FindNewTarget(character, root)
+            targetSwitchCooldown = 30 -- Задержка перед сменой цели (в кадрах)
+        else
+            targetSwitchCooldown = targetSwitchCooldown - 1
+        end
+        
+        -- Наведение на текущую цель
+        if currentTarget then
+            local targetHead = currentTarget:FindFirstChild("Head")
+            if targetHead then
+                -- Плавное наведение только на текущую цель
+                local currentCFrame = workspace.CurrentCamera.CFrame
+                local targetPosition = targetHead.Position
+                local newCFrame = currentCFrame:Lerp(CFrame.lookAt(currentCFrame.Position, targetPosition), Settings.AimBot.Smoothness)
+                
+                workspace.CurrentCamera.CFrame = newCFrame
+                
+                -- Авто-стрельба если включено
+                if Settings.AimBot.AutoShoot then
+                    SimulateShooting()
+                end
+            end
+        end
+    end)
+end
+
+function StopAimBot()
+    if ActiveConnections.AimBot then
+        ActiveConnections.AimBot:Disconnect()
+        ActiveConnections.AimBot = nil
+    end
+    currentTarget = nil
+end
+
+function IsValidTarget(character, player)
+    if not character or not player then return false end
+    
+    local humanoid = character:FindFirstChild("Humanoid")
+    local root = character:FindFirstChild("HumanoidRootPart")
+    
+    if not humanoid or not root or humanoid.Health <= 0 then
+        return false
+    end
+    
+    -- Проверка команды
+    if Settings.AimBot.TeamCheck and player.Team == LocalPlayer.Team then
+        return false
+    end
+    
+    -- Проверка безопасного списка
+    if SafeList[player.Name] then
+        return false
+    end
+    
+    -- Проверка дистанции
+    local distance = (root.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+    if distance > Settings.AimBot.FOV then
+        return false
+    end
+    
+    -- Проверка видимости
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    
+    local raycastResult = workspace:Raycast(
+        LocalPlayer.Character.HumanoidRootPart.Position,
+        (root.Position - LocalPlayer.Character.HumanoidRootPart.Position).Unit * distance,
+        raycastParams
+    )
+    
+    return not raycastResult
+end
+
+function FindNewTarget(character, root)
+    local bestTarget = nil
+    local bestDistance = Settings.AimBot.FOV
+    local bestHealth = math.huge
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local targetCharacter = player.Character
+            local targetPlayer = player
+            
+            if IsValidTarget(targetCharacter, targetPlayer) then
+                local distance = (targetCharacter.HumanoidRootPart.Position - root.Position).Magnitude
+                local health = targetCharacter.Humanoid.Health
+                
+                -- Приоритет ближайшим целям с малым здоровьем
+                if distance < bestDistance or (distance == bestDistance and health < bestHealth) then
+                    bestTarget = targetCharacter
+                    bestDistance = distance
+                    bestHealth = health
+                end
+            end
+        end
+    end
+    
+    if bestTarget and bestTarget ~= currentTarget then
+        currentTarget = bestTarget
+        local targetPlayer = Players:GetPlayerFromCharacter(bestTarget)
+        ShowNotification("Target: " .. targetPlayer.Name, Color3.fromRGB(255, 0, 0))
+    end
+end
+
+function SimulateShooting()
+    -- Имитация стрельбы
+    if LocalPlayer.Character then
+        local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        if tool then
+            -- Здесь можно добавить логику автоматической стрельбы
+        end
+    end
+end
+
+function ForceSwitchTarget()
+    currentTarget = nil
+    targetSwitchCooldown = 0
+    ShowNotification("Switching Target...", Color3.fromRGB(255, 255, 0))
+end
+
+-- ESP система
+local ESPHighlights = {}
+
+function StartESP()
+    ClearESP()
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            player.CharacterAdded:Connect(function(character)
+                AddESP(character, player)
+            end)
+            
+            if player.Character then
+                AddESP(player.Character, player)
+            end
+        end
+    end
+    
+    Players.PlayerAdded:Connect(function(player)
+        player.CharacterAdded:Connect(function(character)
+            AddESP(character, player)
+        end)
+    end)
+end
+
+function AddESP(character, player)
+    if ESPHighlights[character] then return end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ESP_" .. player.Name
+    highlight.Adornee = character
+    highlight.FillColor = player.Team == LocalPlayer.Team and Settings.ESP.TeamColor or Settings.ESP.EnemyColor
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.FillTransparency = 0.7
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = character
+    
+    ESPHighlights[character] = highlight
+    
+    -- Добавляем информацию о дистанции
+    if Settings.ESP.ShowDistance then
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "ESPInfo"
+        billboard.Adornee = character:WaitForChild("Head")
+        billboard.Size = UDim2.new(0, 200, 0, 50)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = character
+        
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Text = player.Name .. "\n" .. player.Team.Name
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.TextSize = 14
+        label.Font = Enum.Font.GothamBold
+        label.Parent = billboard
+    end
+end
+
+function ClearESP()
+    for character, highlight in pairs(ESPHighlights) do
+        highlight:Destroy()
+    end
+    ESPHighlights = {}
+end
+
+function UpdateESPColors()
+    for character, highlight in pairs(ESPHighlights) do
+        local player = Players:FindFirstChild(highlight.Name:sub(5))
+        if player then
+            highlight.FillColor = player.Team == LocalPlayer.Team and Settings.ESP.TeamColor or Settings.ESP.EnemyColor
+        end
+    end
+end
+
+-- Система движения
+function ApplySpeed()
+    local character = LocalPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = Settings.Movement.Speed
+        end
+    end
+end
+
+function ApplyJump()
+    local character = LocalPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.JumpPower = Settings.Movement.JumpPower
+        end
+    end
+end
+
+-- Обработчики клавиш
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        if GUI then
+            GUI.Enabled = not GUI.Enabled
+            ShowNotification(GUI.Enabled and "Menu Shown" or "Menu Hidden", Color3.fromRGB(0, 150, 255))
+        end
+    elseif input.KeyCode == Enum.KeyCode.Insert then
+        -- Полное закрытие скрипта
+        for _, connection in pairs(ActiveConnections) do
+            connection:Disconnect()
+        end
+        if GUI then
+            GUI:Destroy()
+        end
+        ShowNotification("Script Terminated", Color3.fromRGB(255, 0, 0))
+        wait(1)
+        error("Script terminated by user")
+    end
+end)
 
 -- Инициализация
 GUI = CreateGUI()
