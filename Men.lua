@@ -1,4 +1,4 @@
--- Ultimate Combat Menu - FIXED COLORS
+-- Ultimate Combat Menu - FIXED TEAM DETECTION
 local plr = game:GetService("Players").LocalPlayer
 local camera = workspace.CurrentCamera
 local uis = game:GetService("UserInputService")
@@ -8,7 +8,7 @@ local MenuData = {
     ScreenGui = nil,
     Connections = {},
     Running = true,
-    ScriptVersion = "4.1",
+    ScriptVersion = "4.2",
     SelectedTeam = "Staff" -- Staff или Enemy
 }
 
@@ -138,7 +138,7 @@ function isEnemyPlayer(player)
     end
 end
 
--- FIXED Color System
+-- COMPLETELY FIXED Color System with proper team detection
 function getEnemyColor(player)
     if not player.Team then return Color3.new(1, 1, 1) end
     
@@ -146,15 +146,24 @@ function getEnemyColor(player)
     
     if MenuData.SelectedTeam == "Enemy" then
         -- Цвета для врагов (работников) - Class-D и Chaos НЕ должны сюда попадать
-        if enemyTeam == "MTF" or enemyTeam == "Nu-7" or enemyTeam == "MTF E-11" then
-            return Color3.new(1, 0, 0) -- Красный для военных
+        
+        -- Сначала проверяем администрацию/охрану
+        if enemyTeam == "Administration" or enemyTeam == "Facility Guard" or enemyTeam == "O5" then
+            return Color3.new(0, 0, 1) -- Синий для администрации/охраны
+        
+        -- Затем проверяем ученых/медиков
         elseif enemyTeam == "Scientists" or enemyTeam == "Medical" then
             return Color3.new(0, 1, 0) -- Зеленый для ученых/медиков
-        elseif enemyTeam == "Administration" or enemyTeam == "Facility Guard" then
-            return Color3.new(0, 0, 1) -- Синий для администрации/охраны
+        
+        -- Затем проверяем военных
+        elseif enemyTeam == "MTF" or enemyTeam == "Nu-7" or enemyTeam == "MTF E-11" then
+            return Color3.new(1, 0, 0) -- Красный для военных
+        
+        -- Все остальные работники (которые не Class-D и не Chaos)
         else
-            return Color3.new(1, 1, 1) -- Белый для остальных работников
+            return Color3.new(1, 0, 1) -- Фиолетовый для остальных работников
         end
+        
     else
         -- Цвета для работников (врагов - Class-D и Chaos)
         if enemyTeam == "Class-D" then
@@ -569,8 +578,10 @@ function SimpleUI:AddTeamSelector()
         if MenuData.Running then
             MenuData.SelectedTeam = "Staff"
             updateTeamButtons()
-            print("Team set to: Staff - ESP will show Class-D (Yellow) and Chaos (Black)")
-            print("Class-D and Chaos will NOT be highlighted in Enemy mode!")
+            print("Team set to: Staff")
+            print("🟡 Yellow = Class-D")
+            print("⚫ Black = Chaos Insurgency")
+            print("❌ Staff members are NOT highlighted!")
             if ESP.Enabled then
                 setupEnemyESP()
             end
@@ -581,8 +592,12 @@ function SimpleUI:AddTeamSelector()
         if MenuData.Running then
             MenuData.SelectedTeam = "Enemy"
             updateTeamButtons()
-            print("Team set to: Enemy - ESP will show Staff (Red=MTF, Green=Medics, Blue=Admin)")
-            print("Class-D and Chaos are NOT highlighted in Enemy mode!")
+            print("Team set to: Enemy")
+            print("🔵 Blue = Administration/Guards")
+            print("🟢 Green = Scientists/Medical") 
+            print("🔴 Red = MTF/Military")
+            print("🟣 Purple = Other Staff")
+            print("❌ Class-D and Chaos are NOT highlighted!")
             if ESP.Enabled then
                 setupEnemyESP()
             end
@@ -614,17 +629,6 @@ ui:AddTeamSelector()
 -- ESP Section
 ui:AddButton("Enable Enemy ESP", function()
     setupEnemyESP()
-    if MenuData.SelectedTeam == "Enemy" then
-        print("ESP Enabled - Showing ONLY Staff:")
-        print("🔴 Red = MTF/Military")
-        print("🟢 Green = Medics/Scientists") 
-        print("🔵 Blue = Admin/Guards")
-        print("❌ Class-D and Chaos are NOT highlighted!")
-    else
-        print("ESP Enabled - Showing:")
-        print("🟡 Yellow = Class-D")
-        print("⚫ Black = Chaos")
-    end
 end)
 
 ui:AddButton("Disable ESP", function()
@@ -710,5 +714,4 @@ coroutine.wrap(function()
     print("Press RightShift to open/hide menu")
     print("Press X to completely close the script")
     print("Current Team: " .. MenuData.SelectedTeam)
-    print("Class-D and Chaos are NEVER highlighted in Enemy mode!")
 end)()
