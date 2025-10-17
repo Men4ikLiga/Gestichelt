@@ -1,4 +1,4 @@
--- Ultimate Combat Menu by Koliin - FIXED COLORS
+-- Ultimate Combat Menu with Team Selection
 local plr = game:GetService("Players").LocalPlayer
 local camera = workspace.CurrentCamera
 local uis = game:GetService("UserInputService")
@@ -8,7 +8,8 @@ local MenuData = {
     ScreenGui = nil,
     Connections = {},
     Running = true,
-    ScriptVersion = "3.1"
+    ScriptVersion = "4.0",
+    SelectedTeam = "Staff" -- Staff или Enemy
 }
 
 -- ESP System
@@ -121,66 +122,40 @@ function ESP:IsValidTarget(player)
     return true
 end
 
--- FIXED Enemy Detection System
-function getPlayerTeam()
-    if not plr or not plr.Team then return "Unknown" end
-    return plr.Team.Name
-end
-
+-- Manual Team Selection System
 function isEnemyPlayer(player)
     if player == plr then return false end
     if not player.Team then return false end
     
-    local myTeam = getPlayerTeam()
     local enemyTeam = player.Team.Name
     
-    -- Если я Класс-D или Повстанец Хаоса
-    if myTeam == "Class-D" or myTeam == "Chaos Insurgency" then
-        -- Враги все КРОМЕ Class-D и Chaos (они союзники)
+    if MenuData.SelectedTeam == "Enemy" then
+        -- Я выбрал "Враг" - подсвечиваем только работников
         return enemyTeam ~= "Class-D" and enemyTeam ~= "Chaos Insurgency"
-    
-    -- Если я работник (НЕ Class-D и НЕ Chaos)
     else
-        -- Враги только Class-D и Chaos
+        -- Я выбрал "Работник" - подсвечиваем только Class-D и Chaos
         return enemyTeam == "Class-D" or enemyTeam == "Chaos Insurgency"
     end
 end
 
--- COMPLETELY FIXED Color System
 function getEnemyColor(player)
     if not player.Team then return Color3.new(1, 1, 1) end
     
-    local myTeam = getPlayerTeam()
     local enemyTeam = player.Team.Name
     
-    -- Если я Класс-D
-    if myTeam == "Class-D" then
-        -- Все работники - разные цвета
-        if enemyTeam == "Scientists" or enemyTeam == "Medical" then
+    if MenuData.SelectedTeam == "Enemy" then
+        -- Цвета для врагов (работников)
+        if enemyTeam == "MTF" or enemyTeam == "Nu-7" or enemyTeam == "MTF E-11" then
+            return Color3.new(1, 0, 0) -- Красный для военных
+        elseif enemyTeam == "Scientists" or enemyTeam == "Medical" then
             return Color3.new(0, 1, 0) -- Зеленый для ученых/медиков
         elseif enemyTeam == "Administration" or enemyTeam == "Facility Guard" then
             return Color3.new(0, 0, 1) -- Синий для администрации/охраны
-        elseif enemyTeam == "MTF" or enemyTeam == "Nu-7" or enemyTeam == "MTF E-11" then
-            return Color3.new(1, 0, 0) -- Красный для военных
         else
-            return Color3.new(1, 0, 1) -- Фиолетовый для остальных работников
+            return Color3.new(1, 1, 1) -- Белый для остальных работников
         end
-    
-    -- Если я Chaos Insurgency
-    elseif myTeam == "Chaos Insurgency" then
-        -- Все работники - разные цвета (ТОЧНО ТАК ЖЕ КАК У Class-D)
-        if enemyTeam == "Scientists" or enemyTeam == "Medical" then
-            return Color3.new(0, 1, 0) -- Зеленый для ученых/медиков
-        elseif enemyTeam == "Administration" or enemyTeam == "Facility Guard" then
-            return Color3.new(0, 0, 1) -- Синий для администрации/охраны
-        elseif enemyTeam == "MTF" or enemyTeam == "Nu-7" or enemyTeam == "MTF E-11" then
-            return Color3.new(1, 0, 0) -- Красный для военных
-        else
-            return Color3.new(1, 0, 1) -- Фиолетовый для остальных работников
-        end
-    
-    -- Если я работник (НЕ Class-D и НЕ Chaos)
     else
+        -- Цвета для работников (врагов - Class-D и Chaos)
         if enemyTeam == "Class-D" then
             return Color3.new(1, 1, 0) -- Желтый для Class-D
         elseif enemyTeam == "Chaos Insurgency" then
@@ -319,7 +294,7 @@ function autoShootAtTarget(target)
     end
 end
 
--- Simple UI (остается без изменений)
+-- Simple UI with Team Selection
 local SimpleUI = {}
 SimpleUI.__index = SimpleUI
 
@@ -329,8 +304,8 @@ function SimpleUI:CreateWindow(name)
     screenGui.Parent = game:GetService("CoreGui")
     
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 350, 0, 500)
-    mainFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
+    mainFrame.Size = UDim2.new(0, 350, 0, 550)
+    mainFrame.Position = UDim2.new(0.5, -175, 0.5, -275)
     mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     mainFrame.BorderSizePixel = 0
     mainFrame.Active = true
@@ -369,7 +344,7 @@ function SimpleUI:CreateWindow(name)
     closeButton.Parent = titleBar
     
     local scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Size = UDim2.new(1, -10, 1, -150)
+    scrollFrame.Size = UDim2.new(1, -10, 1, -200)
     scrollFrame.Position = UDim2.new(0, 5, 0, 40)
     scrollFrame.BackgroundTransparency = 1
     scrollFrame.ScrollBarThickness = 5
@@ -380,8 +355,8 @@ function SimpleUI:CreateWindow(name)
     layout.Parent = scrollFrame
     
     local bottomFrame = Instance.new("Frame")
-    bottomFrame.Size = UDim2.new(1, -10, 0, 100)
-    bottomFrame.Position = UDim2.new(0, 5, 1, -105)
+    bottomFrame.Size = UDim2.new(1, -10, 0, 150)
+    bottomFrame.Position = UDim2.new(0, 5, 1, -155)
     bottomFrame.BackgroundTransparency = 1
     bottomFrame.Parent = mainFrame
     
@@ -543,6 +518,77 @@ function SimpleUI:AddKeybind(text, defaultKey, callback)
     }
 end
 
+-- Team Selection Function
+function SimpleUI:AddTeamSelector()
+    local teamFrame = Instance.new("Frame")
+    teamFrame.Size = UDim2.new(1, 0, 0, 80)
+    teamFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    teamFrame.Parent = self.BottomFrame
+    
+    local teamLabel = Instance.new("TextLabel")
+    teamLabel.Size = UDim2.new(1, 0, 0, 25)
+    teamLabel.BackgroundTransparency = 1
+    teamLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    teamLabel.Text = "Select Your Team:"
+    teamLabel.Font = Enum.Font.GothamBold
+    teamLabel.TextSize = 14
+    teamLabel.Parent = teamFrame
+    
+    local staffButton = Instance.new("TextButton")
+    staffButton.Size = UDim2.new(0.45, 0, 0, 35)
+    staffButton.Position = UDim2.new(0.025, 0, 0.5, 0)
+    staffButton.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+    staffButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    staffButton.Text = "Staff"
+    staffButton.Font = Enum.Font.GothamBold
+    staffButton.TextSize = 14
+    staffButton.Parent = teamFrame
+    
+    local enemyButton = Instance.new("TextButton")
+    enemyButton.Size = UDim2.new(0.45, 0, 0, 35)
+    enemyButton.Position = UDim2.new(0.525, 0, 0.5, 0)
+    enemyButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    enemyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    enemyButton.Text = "Enemy"
+    enemyButton.Font = Enum.Font.GothamBold
+    enemyButton.TextSize = 14
+    enemyButton.Parent = teamFrame
+    
+    local function updateTeamButtons()
+        if MenuData.SelectedTeam == "Staff" then
+            staffButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+            enemyButton.BackgroundColor3 = Color3.fromRGB(100, 50, 50)
+        else
+            staffButton.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
+            enemyButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        end
+    end
+    
+    staffButton.MouseButton1Click:Connect(function()
+        if MenuData.Running then
+            MenuData.SelectedTeam = "Staff"
+            updateTeamButtons()
+            print("Team set to: Staff - ESP will show Class-D (Yellow) and Chaos (Black)")
+            if ESP.Enabled then
+                setupEnemyESP()
+            end
+        end
+    end)
+    
+    enemyButton.MouseButton1Click:Connect(function()
+        if MenuData.Running then
+            MenuData.SelectedTeam = "Enemy"
+            updateTeamButtons()
+            print("Team set to: Enemy - ESP will show Staff (Red=MTF, Green=Medics, Blue=Admin)")
+            if ESP.Enabled then
+                setupEnemyESP()
+            end
+        end
+    end)
+    
+    updateTeamButtons()
+end
+
 function setupEnemyESP()
     ESP:Cleanup()
     
@@ -559,12 +605,17 @@ end
 -- Create UI
 local ui = SimpleUI:CreateWindow("Combat Menu")
 
+-- Team Selection
+ui:AddTeamSelector()
+
 -- ESP Section
 ui:AddButton("Enable Enemy ESP", function()
     setupEnemyESP()
-    print("ESP Enabled with correct colors!")
-    print("For Class-D/Chaos: Red=MTF, Green=Medics/Scientists, Blue=Admin, Purple=Others")
-    print("For Staff: Yellow=Class-D, Black=Chaos")
+    if MenuData.SelectedTeam == "Enemy" then
+        print("ESP Enabled - Showing Staff: Red=MTF, Green=Medics/Scientists, Blue=Admin")
+    else
+        print("ESP Enabled - Showing: Yellow=Class-D, Black=Chaos")
+    end
 end)
 
 ui:AddButton("Disable ESP", function()
@@ -629,23 +680,6 @@ local playerRemovingConnection = game:GetService("Players").PlayerRemoving:Conne
     end
 end)
 
--- Team change tracking
-coroutine.wrap(function()
-    if plr and plr.Team then
-        local lastTeam = plr.Team
-        while MenuData.Running do
-            wait(3)
-            if plr.Team ~= lastTeam then
-                lastTeam = plr.Team
-                print("Team changed to: " .. plr.Team.Name)
-                if ESP.Enabled then
-                    setupEnemyESP()
-                end
-            end
-        end
-    end
-end)()
-
 -- ESP Update Loop
 local espUpdateConnection = runService.RenderStepped:Connect(function()
     if MenuData.Running and ESP.Enabled then
@@ -666,5 +700,6 @@ coroutine.wrap(function()
     print("Ultimate Combat Menu v" .. MenuData.ScriptVersion .. " Loaded!")
     print("Press RightShift to open/hide menu")
     print("Press X to completely close the script")
-    print("Current Aimbot Key: " .. combatVars.aimbotKey.Name)
+    print("Current Team: " .. MenuData.SelectedTeam)
+    print("Use team buttons to switch between Staff and Enemy mode")
 end)()
