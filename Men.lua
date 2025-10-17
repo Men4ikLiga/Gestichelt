@@ -1,4 +1,4 @@
--- Ultimate Combat Menu by Koliin
+-- Ultimate Combat Menu by Koliin - FIXED COLORS
 local plr = game:GetService("Players").LocalPlayer
 local camera = workspace.CurrentCamera
 local uis = game:GetService("UserInputService")
@@ -8,7 +8,7 @@ local MenuData = {
     ScreenGui = nil,
     Connections = {},
     Running = true,
-    ScriptVersion = "3.0"
+    ScriptVersion = "3.1"
 }
 
 -- ESP System
@@ -136,7 +136,7 @@ function isEnemyPlayer(player)
     
     -- Если я Класс-D или Повстанец Хаоса
     if myTeam == "Class-D" or myTeam == "Chaos Insurgency" then
-        -- Враги все КРОМЕ Class-D и Chaos
+        -- Враги все КРОМЕ Class-D и Chaos (они союзники)
         return enemyTeam ~= "Class-D" and enemyTeam ~= "Chaos Insurgency"
     
     -- Если я работник (НЕ Class-D и НЕ Chaos)
@@ -146,25 +146,40 @@ function isEnemyPlayer(player)
     end
 end
 
--- FIXED Color System
+-- COMPLETELY FIXED Color System
 function getEnemyColor(player)
     if not player.Team then return Color3.new(1, 1, 1) end
     
     local myTeam = getPlayerTeam()
     local enemyTeam = player.Team.Name
     
-    -- Если я Класс-D или Повстанец
-    if myTeam == "Class-D" or myTeam == "Chaos Insurgency" then
-        -- Все враги красные, кроме медиков и ученых (зеленые) и администрации (синие)
+    -- Если я Класс-D
+    if myTeam == "Class-D" then
+        -- Все работники - разные цвета
         if enemyTeam == "Scientists" or enemyTeam == "Medical" then
-            return Color3.new(0, 1, 0) -- Зеленый
+            return Color3.new(0, 1, 0) -- Зеленый для ученых/медиков
         elseif enemyTeam == "Administration" or enemyTeam == "Facility Guard" then
-            return Color3.new(0, 0, 1) -- Синий
+            return Color3.new(0, 0, 1) -- Синий для администрации/охраны
+        elseif enemyTeam == "MTF" or enemyTeam == "Nu-7" or enemyTeam == "MTF E-11" then
+            return Color3.new(1, 0, 0) -- Красный для военных
         else
-            return Color3.new(1, 0, 0) -- Красный для всех остальных врагов
+            return Color3.new(1, 0, 1) -- Фиолетовый для остальных работников
         end
     
-    -- Если я работник
+    -- Если я Chaos Insurgency
+    elseif myTeam == "Chaos Insurgency" then
+        -- Все работники - разные цвета (ТОЧНО ТАК ЖЕ КАК У Class-D)
+        if enemyTeam == "Scientists" or enemyTeam == "Medical" then
+            return Color3.new(0, 1, 0) -- Зеленый для ученых/медиков
+        elseif enemyTeam == "Administration" or enemyTeam == "Facility Guard" then
+            return Color3.new(0, 0, 1) -- Синий для администрации/охраны
+        elseif enemyTeam == "MTF" or enemyTeam == "Nu-7" or enemyTeam == "MTF E-11" then
+            return Color3.new(1, 0, 0) -- Красный для военных
+        else
+            return Color3.new(1, 0, 1) -- Фиолетовый для остальных работников
+        end
+    
+    -- Если я работник (НЕ Class-D и НЕ Chaos)
     else
         if enemyTeam == "Class-D" then
             return Color3.new(1, 1, 0) -- Желтый для Class-D
@@ -304,7 +319,7 @@ function autoShootAtTarget(target)
     end
 end
 
--- Simple UI
+-- Simple UI (остается без изменений)
 local SimpleUI = {}
 SimpleUI.__index = SimpleUI
 
@@ -327,7 +342,6 @@ function SimpleUI:CreateWindow(name)
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = mainFrame
     
-    -- Title Bar
     local titleBar = Instance.new("Frame")
     titleBar.Size = UDim2.new(1, 0, 0, 35)
     titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -381,7 +395,6 @@ function SimpleUI:CreateWindow(name)
     
     MenuData.ScreenGui = screenGui
     
-    -- CLOSE BUTTON NOW CLOSES THE ENTIRE SCRIPT
     closeButton.MouseButton1Click:Connect(function()
         MenuData.Running = false
         ESP:Cleanup()
@@ -392,7 +405,6 @@ function SimpleUI:CreateWindow(name)
         print("Combat Menu closed completely")
     end)
     
-    -- RightShift only hides the menu
     uis.InputBegan:Connect(function(input)
         if input.KeyCode == Enum.KeyCode.RightShift and MenuData.Running then
             mainFrame.Visible = not mainFrame.Visible
@@ -550,7 +562,9 @@ local ui = SimpleUI:CreateWindow("Combat Menu")
 -- ESP Section
 ui:AddButton("Enable Enemy ESP", function()
     setupEnemyESP()
-    print("ESP Enabled - Colors: Red=Enemies, Green=Medics/Scientists, Blue=Admin")
+    print("ESP Enabled with correct colors!")
+    print("For Class-D/Chaos: Red=MTF, Green=Medics/Scientists, Blue=Admin, Purple=Others")
+    print("For Staff: Yellow=Class-D, Black=Chaos")
 end)
 
 ui:AddButton("Disable ESP", function()
@@ -562,7 +576,6 @@ local aimbotToggle = ui:AddToggle("Aimbot Active", function(state)
     combatVars.aimbotActive = state
 end)
 
--- ADDED Auto Shoot Toggle
 local autoShootToggle = ui:AddToggle("Auto Shoot", function(state)
     combatVars.autoShoot = state
 end)
@@ -572,7 +585,7 @@ local keybind = ui:AddKeybind("Aimbot Key", Enum.KeyCode.E, function(newKey)
     print("Aimbot key changed to: " .. newKey.Name)
 end)
 
--- FIXED Aimbot Logic with Auto Shoot
+-- Aimbot Logic
 local aiming = false
 
 local aimbotConnection = uis.InputBegan:Connect(function(input)
@@ -587,7 +600,6 @@ local aimbotConnection = uis.InputBegan:Connect(function(input)
                 local newCFrame = CFrame.new(currentCFrame.Position, targetPosition)
                 camera.CFrame = newCFrame
                 
-                -- AUTO SHOOT FUNCTIONALITY
                 if combatVars.autoShoot then
                     autoShootAtTarget(enemy)
                 end
@@ -655,5 +667,4 @@ coroutine.wrap(function()
     print("Press RightShift to open/hide menu")
     print("Press X to completely close the script")
     print("Current Aimbot Key: " .. combatVars.aimbotKey.Name)
-    print("ESP Colors: Red=Main Enemies, Green=Medics/Scientists, Blue=Admin, Yellow=Class-D, Black=Chaos")
 end)()
