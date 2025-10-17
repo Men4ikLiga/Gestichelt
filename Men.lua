@@ -197,6 +197,7 @@ function SimpleUI:CreateWindow(name)
     mainFrame.BorderSizePixel = 0
     mainFrame.Active = true
     mainFrame.Draggable = true
+    mainFrame.Visible = false  -- Start hidden
     mainFrame.Parent = screenGui
     
     local corner = Instance.new("UICorner")
@@ -243,10 +244,14 @@ function SimpleUI:CreateWindow(name)
     
     MenuData.ScreenGui = screenGui
     
-    -- Toggle key
+    -- Toggle key - FIXED: Properly hide/show instead of moving
     local toggleConnection = uis.InputBegan:Connect(function(input)
         if input.KeyCode == Enum.KeyCode.RightShift and MenuData.Running then
             mainFrame.Visible = not mainFrame.Visible
+            -- Reset position when showing to prevent it moving off-screen
+            if mainFrame.Visible then
+                mainFrame.Position = UDim2.new(0.5, -150, 0.5, -225)
+            end
         end
     end)
     table.insert(MenuData.Connections, toggleConnection)
