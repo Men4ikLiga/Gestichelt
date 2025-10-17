@@ -1,4 +1,4 @@
--- Исправленный Combat Menu by Koliin
+-- Unified Combat Menu by Koliin - FIXED VERSION
 local plr = game:GetService("Players").LocalPlayer
 local camera = workspace.CurrentCamera
 local uis = game:GetService("UserInputService")
@@ -10,7 +10,7 @@ local MenuData = {
     ESPEnabled = false,
     Connections = {},
     Running = true,
-    ScriptVersion = "1.5"
+    ScriptVersion = "1.6"
 }
 
 -- Improved ESP Implementation
@@ -167,8 +167,8 @@ function getEnemyColor(player)
         -- Ученые/Медики - зеленый
         elseif enemyTeam == "Scientists" or enemyTeam == "Medical" then
             return Color3.new(0, 1, 0) -- Зеленый
-        -- Администрация/О5 - синий
-        elseif enemyTeam == "Administration" or enemyTeam == "Facility Guard" or enemyTeam == "O5" then
+        -- Администрация/Охрана - синий
+        elseif enemyTeam == "Administration" or enemyTeam == "Facility Guard" then
             return Color3.new(0, 0, 1) -- Синий
         end
     
@@ -244,6 +244,156 @@ function ESP:Update()
     end
 end
 
+-- Simple UI Library (исправленная версия)
+local SimpleUI = {}
+SimpleUI.__index = SimpleUI
+
+function SimpleUI:CreateWindow(name)
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "CombatMenu_" .. tick()
+    screenGui.Parent = game:GetService("CoreGui")
+    
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 320, 0, 400)
+    mainFrame.Position = UDim2.new(0.5, -160, 0.5, -200)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    mainFrame.Visible = false
+    mainFrame.Parent = screenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = mainFrame
+    
+    -- Title Bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 30)
+    titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    titleBar.Parent = mainFrame
+    
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(0.7, 0, 1, 0)
+    title.BackgroundTransparency = 1
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Text = name .. " v" .. MenuData.ScriptVersion
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Position = UDim2.new(0.05, 0, 0, 0)
+    title.Parent = titleBar
+    
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 25, 0, 25)
+    closeButton.Position = UDim2.new(0.9, 0, 0.1, 0)
+    closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.Text = "X"
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.TextSize = 12
+    closeButton.Parent = titleBar
+    
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Size = UDim2.new(1, -10, 1, -100)
+    scrollFrame.Position = UDim2.new(0, 5, 0, 35)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.ScrollBarThickness = 5
+    scrollFrame.Parent = mainFrame
+    
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 5)
+    layout.Parent = scrollFrame
+    
+    local self = setmetatable({
+        ScreenGui = screenGui,
+        MainFrame = mainFrame,
+        ScrollFrame = scrollFrame,
+        Elements = {}
+    }, SimpleUI)
+    
+    MenuData.ScreenGui = screenGui
+    
+    -- Close button functionality
+    closeButton.MouseButton1Click:Connect(function()
+        mainFrame.Visible = false
+    end)
+    
+    -- Toggle key
+    uis.InputBegan:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.RightShift then
+            mainFrame.Visible = not mainFrame.Visible
+        end
+    end)
+    
+    return self
+end
+
+function SimpleUI:AddButton(text, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 0, 30)
+    button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Text = text
+    button.Font = Enum.Font.Gotham
+    button.TextSize = 12
+    button.Parent = self.ScrollFrame
+    
+    button.MouseButton1Click:Connect(function()
+        callback()
+    end)
+    
+    return button
+end
+
+function SimpleUI:AddToggle(text, callback)
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Size = UDim2.new(1, 0, 0, 30)
+    toggleFrame.BackgroundTransparency = 1
+    toggleFrame.Parent = self.ScrollFrame
+    
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Size = UDim2.new(1, 0, 1, 0)
+    toggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleButton.Text = text
+    toggleButton.Font = Enum.Font.Gotham
+    toggleButton.TextSize = 12
+    toggleButton.TextXAlignment = Enum.TextXAlignment.Left
+    toggleButton.Parent = toggleFrame
+    
+    local toggleIndicator = Instance.new("Frame")
+    toggleIndicator.Size = UDim2.new(0, 20, 0, 20)
+    toggleIndicator.Position = UDim2.new(0.9, -25, 0.15, 0)
+    toggleIndicator.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    toggleIndicator.Parent = toggleButton
+    
+    local state = false
+    
+    local function updateToggle()
+        if state then
+            toggleIndicator.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        else
+            toggleIndicator.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        end
+        callback(state)
+    end
+    
+    toggleButton.MouseButton1Click:Connect(function()
+        state = not state
+        updateToggle()
+    end)
+    
+    updateToggle()
+    
+    return {
+        SetState = function(newState)
+            state = newState
+            updateToggle()
+        end
+    }
+end
+
 -- Improved Aimbot System
 local combatVars = {
     aimbotKey = Enum.KeyCode.E,
@@ -255,34 +405,21 @@ function getTargetInView()
     local closestDistance = math.huge
     
     for _, player in pairs(game:GetService("Players"):GetPlayers()) do
-        if isEnemyPlayer(player) and ESP:IsValidTarget(player) then
-            local head = player.Character:FindFirstChild("Head")
-            if head then
+        if isEnemyPlayer(player) then
+            local character = player.Character
+            if character and character:FindFirstChild("Head") then
+                local head = character.Head
                 local screenPoint, onScreen = camera:WorldToViewportPoint(head.Position)
                 
-                -- Проверяем что враг в зоне видимости и не за стеной
                 if onScreen then
-                    -- Raycast проверка на препятствия
-                    local rayOrigin = camera.CFrame.Position
-                    local rayDirection = (head.Position - rayOrigin).Unit * 1000
-                    local raycastParams = RaycastParams.new()
-                    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-                    raycastParams.FilterDescendantsInstances = {plr.Character}
+                    -- Simple distance check (без raycast для простоты)
+                    local center = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+                    local mousePos = Vector2.new(screenPoint.X, screenPoint.Y)
+                    local distance = (center - mousePos).Magnitude
                     
-                    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-                    
-                    if raycastResult then
-                        local hitPlayer = game:GetService("Players"):GetPlayerFromCharacter(raycastResult.Instance:FindFirstAncestorOfClass("Model"))
-                        if hitPlayer == player then
-                            local center = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
-                            local mousePos = Vector2.new(screenPoint.X, screenPoint.Y)
-                            local distance = (center - mousePos).Magnitude
-                            
-                            if distance < 300 and distance < closestDistance then
-                                target = player
-                                closestDistance = distance
-                            end
-                        end
+                    if distance < 200 and distance < closestDistance then
+                        target = player
+                        closestDistance = distance
                     end
                 end
             end
@@ -291,10 +428,8 @@ function getTargetInView()
     return target
 end
 
--- Player tracking with team updates
 function setupEnemyESP()
     ESP:Cleanup()
-    ESP:Toggle(true)
     
     for _, player in pairs(game:GetService("Players"):GetPlayers()) do
         if isEnemyPlayer(player) then
@@ -302,139 +437,92 @@ function setupEnemyESP()
             ESP:Add(player, {Color = color})
         end
     end
+    
+    ESP:Toggle(true)
 end
 
--- Team change tracking
-local function trackTeamChanges()
-    if plr and plr.Team then
-        local lastTeam = plr.Team
-        while MenuData.Running do
-            wait(1)
-            if plr.Team ~= lastTeam then
-                lastTeam = plr.Team
-                print("Team changed to: " .. plr.Team.Name)
-                if ESP.Enabled then
-                    -- Пересоздаем ESP для всех игроков с новыми настройками
-                    for player, espData in pairs(espObjects) do
-                        ESP:Remove(player)
-                    end
-                    setupEnemyESP()
-                end
-            end
-        end
-    end
-end
+-- Create UI
+local ui = SimpleUI:CreateWindow("Combat Menu")
 
--- Improved Aimbot Logic
+-- ESP Section
+ui:AddButton("Enable Enemy ESP", function()
+    setupEnemyESP()
+end)
+
+ui:AddButton("Disable ESP", function()
+    ESP:Toggle(false)
+end)
+
+-- Aimbot Section
+local aimbotToggle = ui:AddToggle("Aimbot Active", function(state)
+    combatVars.aimbotActive = state
+end)
+
+-- Aimbot Logic
 local aiming = false
-local autoDisarmActive = false
 
-local aimbotConnection = uis.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == combatVars.aimbotKey and combatVars.aimbotActive and MenuData.Running then
+uis.InputBegan:Connect(function(input)
+    if input.KeyCode == combatVars.aimbotKey and combatVars.aimbotActive then
         aiming = true
-        autoDisarmActive = true
         
-        while aiming and MenuData.Running and runService.RenderStepped:Wait() do
+        while aiming and runService.RenderStepped:Wait() do
             local enemy = getTargetInView()
             if enemy and enemy.Character and enemy.Character:FindFirstChild("Head") then
                 local currentCFrame = camera.CFrame
                 local targetPosition = enemy.Character.Head.Position
                 local newCFrame = CFrame.new(currentCFrame.Position, targetPosition)
                 camera.CFrame = newCFrame
-                
-                if autoDisarmActive then
-                    pcall(function()
-                        local args = {
-                            [1] = {
-                                [1] = targetPosition.X,
-                                [2] = targetPosition.Y,
-                                [3] = targetPosition.Z
-                            },
-                            [2] = enemy.Character.Head
-                        }
-                        game:GetService("ReplicatedStorage").Remotes.ShootRemote:FireServer(unpack(args))
-                    end)
-                end
             end
         end
     end
 end)
-table.insert(MenuData.Connections, aimbotConnection)
 
-local aimbotEndConnection = uis.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == combatVars.aimbotKey then
+uis.InputEnded:Connect(function(input)
+    if input.KeyCode == combatVars.aimbotKey then
         aiming = false
-        autoDisarmActive = false
     end
 end)
-table.insert(MenuData.Connections, aimbotEndConnection)
 
--- Player tracking with automatic updates
-local playerAddedConnection = game:GetService("Players").PlayerAdded:Connect(function(player)
-    if ESP.Enabled and MenuData.Running then
-        wait(2) -- Ждем загрузки команды игрока
-        if isEnemyPlayer(player) then
-            local color = getEnemyColor(player)
-            ESP:Add(player, {Color = color})
-        end
+-- Player tracking
+game:GetService("Players").PlayerAdded:Connect(function(player)
+    wait(2)
+    if ESP.Enabled and isEnemyPlayer(player) then
+        local color = getEnemyColor(player)
+        ESP:Add(player, {Color = color})
     end
 end)
-table.insert(MenuData.Connections, playerAddedConnection)
 
-local playerRemovingConnection = game:GetService("Players").PlayerRemoving:Connect(function(player)
-    if MenuData.Running then
-        ESP:Remove(player)
-    end
+game:GetService("Players").PlayerRemoving:Connect(function(player)
+    ESP:Remove(player)
 end)
-table.insert(MenuData.Connections, playerRemovingConnection)
 
--- Track team changes for all players
-local function trackAllPlayersTeams()
-    while MenuData.Running do
-        wait(5) -- Проверяем каждые 5 секунд
-        if ESP.Enabled then
-            for _, player in pairs(game:GetService("Players"):GetPlayers()) do
-                if player ~= plr then
-                    local isCurrentlyEnemy = isEnemyPlayer(player)
-                    local hasESP = espObjects[player] ~= nil
-                    
-                    if isCurrentlyEnemy and not hasESP then
-                        -- Добавляем ESP для нового врага
-                        local color = getEnemyColor(player)
-                        ESP:Add(player, {Color = color})
-                    elseif not isCurrentlyEnemy and hasESP then
-                        -- Убираем ESP с бывшего врага
-                        ESP:Remove(player)
-                    elseif isCurrentlyEnemy and hasESP then
-                        -- Обновляем цвет если нужно
-                        local currentColor = getEnemyColor(player)
-                        local espData = espObjects[player]
-                        if espData.Box then
-                            espData.Box.Color = currentColor
-                        end
-                        if espData.Name then
-                            espData.Name.Color = currentColor
-                        end
-                    end
+-- Team change tracking
+coroutine.wrap(function()
+    if plr and plr.Team then
+        local lastTeam = plr.Team
+        while true do
+            wait(2)
+            if plr.Team ~= lastTeam then
+                lastTeam = plr.Team
+                if ESP.Enabled then
+                    setupEnemyESP()
                 end
             end
         end
     end
-end
-
--- Запускаем системы отслеживания
-coroutine.wrap(trackTeamChanges)()
-coroutine.wrap(trackAllPlayersTeams)()
+end)()
 
 -- ESP Update Loop
-local espUpdateConnection = runService.RenderStepped:Connect(function()
-    if MenuData.Running then
-        ESP:Update()
-    end
+runService.RenderStepped:Connect(function()
+    ESP:Update()
 end)
-table.insert(MenuData.Connections, espUpdateConnection)
 
-print("Improved Combat Menu Loaded! v" .. MenuData.ScriptVersion)
-print("Fixed: Aimbot now only targets visible enemies")
-print("Fixed: ESP colors now correctly show enemies based on your team")
-print("Added: Automatic team tracking and ESP updates")
+-- Auto setup ESP for existing players
+coroutine.wrap(function()
+    wait(3)
+    setupEnemyESP()
+end)()
+
+print("Combat Menu Fixed Version Loaded! v" .. MenuData.ScriptVersion)
+print("Press RightShift to toggle menu")
+print("Features: Fixed ESP colors, Improved Aimbot, Auto team tracking")
