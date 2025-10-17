@@ -10,7 +10,7 @@ local MenuData = {
     ESPEnabled = false,
     Connections = {},
     Running = true,
-    ScriptVersion = "1.3"
+    ScriptVersion = "1.4"
 }
 
 -- Improved ESP Implementation
@@ -199,29 +199,15 @@ function isEnemyPlayer(player)
     local myTeam = getPlayerTeam()
     local enemyTeam = player.Team.Name
     
-    -- Если я Повстанец Хаоса (черные)
-    if myTeam == "Chaos Insurgency" then
-        return enemyTeam ~= "Chaos Insurgency"
+    -- Если я Класс-D или Повстанец Хаоса
+    if myTeam == "Class-D" or myTeam == "Chaos Insurgency" then
+        -- Подсвечиваем всех кроме Класс-D и Повстанцев
+        return enemyTeam ~= "Class-D" and enemyTeam ~= "Chaos Insurgency"
     
-    -- Если я Класс-D (желтые) 
-    elseif myTeam == "Class-D" then
-        return enemyTeam ~= "Class-D"
-    
-    -- Если я SCP
-    elseif myTeam == "SCP" then
-        return enemyTeam ~= "SCP"
-    
-    -- Если я Военный (MTF)
-    elseif myTeam == "MTF" or myTeam == "Nu-7" or myTeam == "MTF E-11" then
-        return enemyTeam == "Chaos Insurgency" or enemyTeam == "Class-D" or enemyTeam == "SCP"
-    
-    -- Если я Ученый/Администрация/Охранник
-    elseif myTeam == "Scientists" or myTeam == "Administration" or myTeam == "Facility Guard" then
-        return enemyTeam == "Chaos Insurgency" or enemyTeam == "Class-D" or enemyTeam == "SCP"
-    
-    -- Если команда неизвестна или нет команды
+    -- Если я НЕ Класс-D и НЕ Повстанец
     else
-        return enemyTeam ~= myTeam
+        -- Подсвечиваем только Класс-D и Повстанцев
+        return enemyTeam == "Class-D" or enemyTeam == "Chaos Insurgency"
     end
 end
 
@@ -230,29 +216,25 @@ function getEnemyColor(player)
     
     local enemyTeam = player.Team.Name
     
-    -- Военные - красный
-    if enemyTeam == "MTF" or enemyTeam == "Nu-7" or enemyTeam == "MTF E-11" then
-        return Color3.new(1, 0, 0)
-    
-    -- Врачи/Ученые - синий
-    elseif enemyTeam == "Scientists" or enemyTeam == "Medical" then
-        return Color3.new(0, 0.5, 1)
-    
-    -- Администрация/Охранники - зеленый
-    elseif enemyTeam == "Administration" or enemyTeam == "Facility Guard" then
-        return Color3.new(0, 1, 0)
-    
-    -- Повстанцы Хаоса - оранжевый
-    elseif enemyTeam == "Chaos Insurgency" then
-        return Color3.new(1, 0.5, 0)
-    
     -- Класс-D - желтый
-    elseif enemyTeam == "Class-D" then
-        return Color3.new(1, 1, 0)
+    if enemyTeam == "Class-D" then
+        return Color3.new(1, 1, 0) -- Желтый
     
-    -- SCP - фиолетовый
-    elseif enemyTeam == "SCP" then
-        return Color3.new(0.5, 0, 1)
+    -- Повстанцы Хаоса - красный
+    elseif enemyTeam == "Chaos Insurgency" then
+        return Color3.new(1, 0, 0) -- Красный
+    
+    -- Военные - синий
+    elseif enemyTeam == "MTF" or enemyTeam == "Nu-7" or enemyTeam == "MTF E-11" then
+        return Color3.new(0, 0.5, 1) -- Синий
+    
+    -- Врачи/Ученые - зеленый
+    elseif enemyTeam == "Scientists" or enemyTeam == "Medical" then
+        return Color3.new(0, 1, 0) -- Зеленый
+    
+    -- Администрация/Охранники - фиолетовый
+    elseif enemyTeam == "Administration" or enemyTeam == "Facility Guard" then
+        return Color3.new(0.5, 0, 1) -- Фиолетовый
     
     -- Остальные - белый
     else
@@ -270,8 +252,8 @@ function SimpleUI:CreateWindow(name)
     screenGui.Parent = game:GetService("CoreGui")
     
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 300, 0, 400)
-    mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+    mainFrame.Size = UDim2.new(0, 320, 0, 450)
+    mainFrame.Position = UDim2.new(0.5, -160, 0.5, -225)
     mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     mainFrame.BorderSizePixel = 0
     mainFrame.Active = true
@@ -283,22 +265,45 @@ function SimpleUI:CreateWindow(name)
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = mainFrame
     
+    -- Title Bar with Close Button
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 35)
+    titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    titleBar.Parent = mainFrame
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = titleBar
+    
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 30)
-    title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    title.Size = UDim2.new(0.7, 0, 1, 0)
+    title.BackgroundTransparency = 1
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.Text = name .. " v" .. MenuData.ScriptVersion
     title.Font = Enum.Font.GothamBold
     title.TextSize = 16
-    title.Parent = mainFrame
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Position = UDim2.new(0.05, 0, 0, 0)
+    title.Parent = titleBar
     
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 8)
-    titleCorner.Parent = title
+    -- Close Button (X)
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 25, 0, 25)
+    closeButton.Position = UDim2.new(0.9, 0, 0.15, 0)
+    closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.Text = "X"
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.TextSize = 14
+    closeButton.Parent = titleBar
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeButton
     
     local scrollFrame = Instance.new("ScrollingFrame")
     scrollFrame.Size = UDim2.new(1, -10, 1, -140)
-    scrollFrame.Position = UDim2.new(0, 5, 0, 35)
+    scrollFrame.Position = UDim2.new(0, 5, 0, 40)
     scrollFrame.BackgroundTransparency = 1
     scrollFrame.ScrollBarThickness = 5
     scrollFrame.Parent = mainFrame
@@ -308,8 +313,8 @@ function SimpleUI:CreateWindow(name)
     layout.Parent = scrollFrame
     
     local bottomFrame = Instance.new("Frame")
-    bottomFrame.Size = UDim2.new(1, -10, 0, 100)
-    bottomFrame.Position = UDim2.new(0, 5, 1, -105)
+    bottomFrame.Size = UDim2.new(1, -10, 0, 95)
+    bottomFrame.Position = UDim2.new(0, 5, 1, -100)
     bottomFrame.BackgroundTransparency = 1
     bottomFrame.Parent = mainFrame
     
@@ -323,12 +328,19 @@ function SimpleUI:CreateWindow(name)
     
     MenuData.ScreenGui = screenGui
     
+    -- Close button functionality
+    closeButton.MouseButton1Click:Connect(function()
+        if MenuData.Running then
+            mainFrame.Visible = false
+        end
+    end)
+    
     -- Toggle key
     local toggleConnection = uis.InputBegan:Connect(function(input)
         if input.KeyCode == Enum.KeyCode.RightShift and MenuData.Running then
             mainFrame.Visible = not mainFrame.Visible
             if mainFrame.Visible then
-                mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+                mainFrame.Position = UDim2.new(0.5, -160, 0.5, -225)
             end
         end
     end)
@@ -634,10 +646,6 @@ local reloadButton = ui:AddBottomButton("🔄 RELOAD SCRIPT", Color3.fromRGB(50,
     ReloadScript()
 end)
 
-local closeButton = ui:AddBottomButton("❌ CLOSE MENU", Color3.fromRGB(200, 50, 50), function()
-    ui.MainFrame.Visible = false
-end)
-
 -- Aimbot Logic
 local aiming = false
 local autoDisarmActive = false
@@ -731,3 +739,4 @@ end
 
 print("Combat Menu Loaded! v" .. MenuData.ScriptVersion)
 print("Press RightShift to toggle menu")
+print("Close with X button or Reload to update script")
