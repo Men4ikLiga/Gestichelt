@@ -4,6 +4,14 @@ local camera = workspace.CurrentCamera
 local uis = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
 
+-- Global variables for cleanup
+local MenuData = {
+    ScreenGui = nil,
+    ESPEnabled = false,
+    Connections = {},
+    Running = true
+}
+
 -- Improved ESP Implementation
 local ESP = {
     Enabled = false,
@@ -24,7 +32,8 @@ function ESP:Cleanup()
     espObjects = {}
     
     for _, connection in pairs(espConnections) do
-        connection:Disconnect()
+        if connection.characterAdded then connection.characterAdded:Disconnect() end
+        if connection.characterRemoving then connection.characterRemoving:Disconnect() end
     end
     espConnections = {}
 end
@@ -70,12 +79,16 @@ function ESP:Add(player, settings)
     
     -- Track player state changes
     local characterAddedConnection = player.CharacterAdded:Connect(function(character)
-        wait(1) -- Wait for character to fully load
-        self:UpdatePlayer(player)
+        wait(1)
+        if MenuData.Running then
+            self:UpdatePlayer(player)
+        end
     end)
     
     local characterRemovingConnection = player.CharacterRemoving:Connect(function()
-        self:UpdatePlayer(player)
+        if MenuData.Running then
+            self:UpdatePlayer(player)
+        end
     end)
     
     espConnections[player] = {
@@ -94,8 +107,8 @@ function ESP:Remove(player)
     
     local connections = espConnections[player]
     if connections then
-        connections.characterAdded:Disconnect()
-        connections.characterRemoving:Disconnect()
+        if connections.characterAdded then connections.characterAdded:Disconnect() end
+        if connections.characterRemoving then connections.characterRemoving:Disconnect() end
         espConnections[player] = nil
     end
 end
@@ -121,10 +134,10 @@ function ESP:UpdatePlayer(player)
     local isValid = self:IsValidTarget(player) and isWarsPlayer(player)
     
     if espData.Box then
-        espData.Box.Visible = isValid and self.Enabled
+        espData.Box.Visible = isValid and self.Enabled and MenuData.Running
     end
     if espData.Name then
-        espData.Name.Visible = isValid and self.Enabled
+        espData.Name.Visible = isValid and self.Enabled and MenuData.Running
     end
 end
 
@@ -137,7 +150,7 @@ function ESP:UpdateAllPlayers()
 end
 
 function ESP:Update()
-    if not self.Enabled then return end
+    if not self.Enabled or not MenuData.Running then return end
     
     for player, espData in pairs(espObjects) do
         if self:IsValidTarget(player) and isWarsPlayer(player) then
@@ -178,8 +191,8 @@ function SimpleUI:CreateWindow(name)
     screenGui.Parent = game:GetService("CoreGui")
     
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 300, 0, 400)
-    mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+    mainFrame.Size = UDim2.new(0, 300, 0, 450)
+    mainFrame.Position = UDim2.new(0.5, -150, 0.5, -225)
     mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     mainFrame.BorderSizePixel = 0
     mainFrame.Active = true
@@ -204,7 +217,7 @@ function SimpleUI:CreateWindow(name)
     titleCorner.Parent = title
     
     local scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Size = UDim2.new(1, -10, 1, -40)
+    scrollFrame.Size = UDim2.new(1, -10, 1, -90)
     scrollFrame.Position = UDim2.new(0, 5, 0, 35)
     scrollFrame.BackgroundTransparency = 1
     scrollFrame.ScrollBarThickness = 5
@@ -214,19 +227,29 @@ function SimpleUI:CreateWindow(name)
     layout.Padding = UDim.new(0, 5)
     layout.Parent = scrollFrame
     
+    local bottomFrame = Instance.new("Frame")
+    bottomFrame.Size = UDim2.new(1, -10, 0, 50)
+    bottomFrame.Position = UDim2.new(0, 5, 1, -55)
+    bottomFrame.BackgroundTransparency = 1
+    bottomFrame.Parent = mainFrame
+    
     local self = setmetatable({
         ScreenGui = screenGui,
         MainFrame = mainFrame,
         ScrollFrame = scrollFrame,
+        BottomFrame = bottomFrame,
         Elements = {}
     }, SimpleUI)
     
+    MenuData.ScreenGui = screenGui
+    
     -- Toggle key
-    uis.InputBegan:Connect(function(input)
-        if input.KeyCode == Enum.KeyCode.RightShift then
+    local toggleConnection = uis.InputBegan:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.RightShift and MenuData.Running then
             mainFrame.Visible = not mainFrame.Visible
         end
     end)
+    table.insert(MenuData.Connections, toggleConnection)
     
     return self
 end
@@ -246,7 +269,9 @@ function SimpleUI:AddButton(text, callback)
     corner.Parent = button
     
     button.MouseButton1Click:Connect(function()
-        callback()
+        if MenuData.Running then
+            callback()
+        end
     end)
     
     table.insert(self.Elements, button)
@@ -293,12 +318,16 @@ function SimpleUI:AddToggle(text, callback)
         else
             toggleIndicator.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
         end
-        callback(state)
+        if MenuData.Running then
+            callback(state)
+        end
     end
     
     toggleButton.MouseButton1Click:Connect(function()
-        state = not state
-        updateToggle()
+        if MenuData.Running then
+            state = not state
+            updateToggle()
+        end
     end)
     
     updateToggle()
@@ -307,8 +336,10 @@ function SimpleUI:AddToggle(text, callback)
     
     return {
         SetState = function(newState)
-            state = newState
-            updateToggle()
+            if MenuData.Running then
+                state = newState
+                updateToggle()
+            end
         end
     }
 end
@@ -351,7 +382,7 @@ function SimpleUI:AddKeybind(text, defaultKey, callback)
     local listening = false
     
     keybindButton.MouseButton1Click:Connect(function()
-        if not listening then
+        if MenuData.Running and not listening then
             listening = true
             keyText.Text = "..."
             keyText.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
@@ -364,7 +395,9 @@ function SimpleUI:AddKeybind(text, defaultKey, callback)
                     keyText.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
                     listening = false
                     connection:Disconnect()
-                    callback(currentKey)
+                    if MenuData.Running then
+                        callback(currentKey)
+                    end
                 end
             end)
         end
@@ -378,12 +411,97 @@ function SimpleUI:AddKeybind(text, defaultKey, callback)
     }
 end
 
+function SimpleUI:AddBottomButton(text, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 0, 40)
+    button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Text = text
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 14
+    button.Parent = self.BottomFrame
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = button
+    
+    button.MouseButton1Click:Connect(function()
+        if MenuData.Running then
+            callback()
+        end
+    end)
+    
+    return button
+end
+
 function SimpleUI:UpdateSize()
     local totalSize = 0
     for _, element in pairs(self.Elements) do
         totalSize = totalSize + element.AbsoluteSize.Y + 5
     end
     self.ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, totalSize)
+end
+
+-- Cleanup function
+function CleanupEverything()
+    MenuData.Running = false
+    
+    -- Disable ESP
+    ESP:Toggle(false)
+    ESP:Cleanup()
+    
+    -- Disconnect all connections
+    for _, connection in pairs(MenuData.Connections) do
+        if connection then
+            pcall(function() connection:Disconnect() end)
+        end
+    end
+    MenuData.Connections = {}
+    
+    -- Remove UI
+    if MenuData.ScreenGui then
+        MenuData.ScreenGui:Destroy()
+        MenuData.ScreenGui = nil
+    end
+    
+    -- Stop aimbot
+    aiming = false
+    autoDisarmActive = false
+end
+
+-- Reload function
+function ReloadScript()
+    CleanupEverything()
+    
+    -- Wait a moment for cleanup to complete
+    wait(0.5)
+    
+    -- Reload from source (replace URL with your script location)
+    local success, result = pcall(function()
+        loadstring(game:HttpGet("https://your-script-url-here.com/script.lua"))()
+    end)
+    
+    if not success then
+        warn("Failed to reload script: " .. tostring(result))
+        -- Recreate basic menu to show error
+        local errorGui = Instance.new("ScreenGui")
+        local errorFrame = Instance.new("Frame")
+        errorFrame.Size = UDim2.new(0, 300, 0, 100)
+        errorFrame.Position = UDim2.new(0.5, -150, 0.5, -50)
+        errorFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        errorFrame.Parent = errorGui
+        
+        local errorText = Instance.new("TextLabel")
+        errorText.Size = UDim2.new(1, -10, 1, -10)
+        errorText.Position = UDim2.new(0, 5, 0, 5)
+        errorText.BackgroundTransparency = 1
+        errorText.TextColor3 = Color3.fromRGB(255, 100, 100)
+        errorText.Text = "Reload Failed!\n" .. tostring(result)
+        errorText.TextWrapped = true
+        errorText.Parent = errorFrame
+        
+        errorGui.Parent = game:GetService("CoreGui")
+    end
 end
 
 -- Combat Logic
@@ -402,7 +520,7 @@ function isWarsPlayer(player)
 end
 
 function setupWarsESP()
-    ESP:Cleanup() -- Clear previous ESP
+    ESP:Cleanup()
     ESP:Toggle(true)
     
     for _, player in pairs(game:GetService("Players"):GetPlayers()) do
@@ -423,13 +541,11 @@ function getTargetInView()
             local head = player.Character.Head
             local screenPoint, onScreen = camera:WorldToViewportPoint(head.Position)
             
-            -- Check if player is on screen and within reasonable distance
             if onScreen then
                 local center = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
                 local mousePos = Vector2.new(screenPoint.X, screenPoint.Y)
                 local distance = (center - mousePos).Magnitude
                 
-                -- Check if player is within view cone (adjust 300 for FOV)
                 if distance < 300 and distance < closestDistance then
                     target = player
                     closestDistance = distance
@@ -467,25 +583,29 @@ local keybind = ui:AddKeybind("Aimbot Key", Enum.KeyCode.E, function(newKey)
     combatVars.aimbotKey = newKey
 end)
 
+-- Reload Button
+local reloadButton = ui:AddBottomButton("🔄 RELOAD SCRIPT", function()
+    reloadButton.Text = "Reloading..."
+    ReloadScript()
+end)
+
 -- Aimbot Logic
 local aiming = false
 local autoDisarmActive = false
 
-uis.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == combatVars.aimbotKey and combatVars.aimbotActive then
+local aimbotConnection = uis.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == combatVars.aimbotKey and combatVars.aimbotActive and MenuData.Running then
         aiming = true
         autoDisarmActive = true
         
-        while aiming and runService.RenderStepped:Wait() do
+        while aiming and MenuData.Running and runService.RenderStepped:Wait() do
             local enemy = getTargetInView()
             if enemy and enemy.Character and enemy.Character:FindFirstChild("Head") then
-                -- Smooth aim at head
                 local currentCFrame = camera.CFrame
                 local targetPosition = enemy.Character.Head.Position
                 local newCFrame = CFrame.new(currentCFrame.Position, targetPosition)
                 camera.CFrame = newCFrame
                 
-                -- Auto disarm (continuous)
                 if autoDisarmActive then
                     pcall(function()
                         local args = {
@@ -503,29 +623,38 @@ uis.InputBegan:Connect(function(input)
         end
     end
 end)
+table.insert(MenuData.Connections, aimbotConnection)
 
-uis.InputEnded:Connect(function(input)
+local aimbotEndConnection = uis.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == combatVars.aimbotKey then
         aiming = false
         autoDisarmActive = false
     end
 end)
+table.insert(MenuData.Connections, aimbotEndConnection)
 
 -- Player tracking for ESP updates
-game:GetService("Players").PlayerAdded:Connect(function(player)
-    if ESP.Enabled and isWarsPlayer(player) then
+local playerAddedConnection = game:GetService("Players").PlayerAdded:Connect(function(player)
+    if ESP.Enabled and isWarsPlayer(player) and MenuData.Running then
         ESP:Add(player, {Color = Color3.new(1, 0, 0)})
     end
 end)
+table.insert(MenuData.Connections, playerAddedConnection)
 
-game:GetService("Players").PlayerRemoving:Connect(function(player)
-    ESP:Remove(player)
+local playerRemovingConnection = game:GetService("Players").PlayerRemoving:Connect(function(player)
+    if MenuData.Running then
+        ESP:Remove(player)
+    end
 end)
+table.insert(MenuData.Connections, playerRemovingConnection)
 
 -- ESP Update Loop
-runService.RenderStepped:Connect(function()
-    ESP:Update()
+local espUpdateConnection = runService.RenderStepped:Connect(function()
+    if MenuData.Running then
+        ESP:Update()
+    end
 end)
+table.insert(MenuData.Connections, espUpdateConnection)
 
 -- Anti AFK
 for _, connection in pairs(getconnections(plr.Idled)) do
@@ -533,3 +662,4 @@ for _, connection in pairs(getconnections(plr.Idled)) do
 end
 
 print("Combat Menu Loaded! Press RightShift to toggle menu.")
+print("Use RELOAD button to update script from source.")
