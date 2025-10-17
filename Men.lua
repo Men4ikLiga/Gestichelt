@@ -4,7 +4,7 @@ local camera = workspace.CurrentCamera
 local uis = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
 
--- Simple ESP Implementation
+-- Improved ESP Implementation
 local ESP = {
     Enabled = false,
     Players = false,
@@ -14,23 +14,34 @@ local ESP = {
 }
 
 local espObjects = {}
+local espConnections = {}
+
+function ESP:Cleanup()
+    for player, espData in pairs(espObjects) do
+        if espData.Box then espData.Box:Remove() end
+        if espData.Name then espData.Name:Remove() end
+    end
+    espObjects = {}
+    
+    for _, connection in pairs(espConnections) do
+        connection:Disconnect()
+    end
+    espConnections = {}
+end
 
 function ESP:Toggle(state)
     self.Enabled = state
     if not state then
-        for _, obj in pairs(espObjects) do
-            if obj then
-                obj:Remove()
-            end
-        end
-        espObjects = {}
+        self:Cleanup()
     else
-        self:Update()
+        self:UpdateAllPlayers()
     end
 end
 
 function ESP:Add(player, settings)
-    if espObjects[player] then return end
+    if espObjects[player] then 
+        self:Remove(player)
+    end
     
     local espData = {}
     
@@ -56,13 +67,80 @@ function ESP:Add(player, settings)
     end
     
     espObjects[player] = espData
+    
+    -- Track player state changes
+    local characterAddedConnection = player.CharacterAdded:Connect(function(character)
+        wait(1) -- Wait for character to fully load
+        self:UpdatePlayer(player)
+    end)
+    
+    local characterRemovingConnection = player.CharacterRemoving:Connect(function()
+        self:UpdatePlayer(player)
+    end)
+    
+    espConnections[player] = {
+        characterAdded = characterAddedConnection,
+        characterRemoving = characterRemovingConnection
+    }
+end
+
+function ESP:Remove(player)
+    local espData = espObjects[player]
+    if espData then
+        if espData.Box then espData.Box:Remove() end
+        if espData.Name then espData.Name:Remove() end
+        espObjects[player] = nil
+    end
+    
+    local connections = espConnections[player]
+    if connections then
+        connections.characterAdded:Disconnect()
+        connections.characterRemoving:Disconnect()
+        espConnections[player] = nil
+    end
+end
+
+function ESP:IsValidTarget(player)
+    if not player then return false end
+    if not player.Character then return false end
+    
+    local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+    if humanoid.Health <= 0 then return false end
+    
+    local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return false end
+    
+    return true
+end
+
+function ESP:UpdatePlayer(player)
+    local espData = espObjects[player]
+    if not espData then return end
+    
+    local isValid = self:IsValidTarget(player) and isWarsPlayer(player)
+    
+    if espData.Box then
+        espData.Box.Visible = isValid and self.Enabled
+    end
+    if espData.Name then
+        espData.Name.Visible = isValid and self.Enabled
+    end
+end
+
+function ESP:UpdateAllPlayers()
+    if not self.Enabled then return end
+    
+    for player, espData in pairs(espObjects) do
+        self:UpdatePlayer(player)
+    end
 end
 
 function ESP:Update()
     if not self.Enabled then return end
     
     for player, espData in pairs(espObjects) do
-        if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        if self:IsValidTarget(player) and isWarsPlayer(player) then
             local rootPart = player.Character.HumanoidRootPart
             local position, onScreen = camera:WorldToViewportPoint(rootPart.Position)
             
@@ -167,7 +245,9 @@ function SimpleUI:AddButton(text, callback)
     corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = button
     
-    button.MouseButton1Click:Connect(callback)
+    button.MouseButton1Click:Connect(function()
+        callback()
+    end)
     
     table.insert(self.Elements, button)
     self:UpdateSize()
@@ -322,7 +402,9 @@ function isWarsPlayer(player)
 end
 
 function setupWarsESP()
+    ESP:Cleanup() -- Clear previous ESP
     ESP:Toggle(true)
+    
     for _, player in pairs(game:GetService("Players"):GetPlayers()) do
         if isWarsPlayer(player) then
             ESP:Add(player, {
@@ -332,16 +414,26 @@ function setupWarsESP()
     end
 end
 
-function getClosestWarsPlayer()
+function getTargetInView()
     local target = nil
-    local maxDist = math.huge
+    local closestDistance = math.huge
     
     for _, player in pairs(game:GetService("Players"):GetPlayers()) do
-        if isWarsPlayer(player) and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local dist = (player.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).Magnitude
-            if dist < maxDist then
-                target = player
-                maxDist = dist
+        if isWarsPlayer(player) and ESP:IsValidTarget(player) then
+            local head = player.Character.Head
+            local screenPoint, onScreen = camera:WorldToViewportPoint(head.Position)
+            
+            -- Check if player is on screen and within reasonable distance
+            if onScreen then
+                local center = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+                local mousePos = Vector2.new(screenPoint.X, screenPoint.Y)
+                local distance = (center - mousePos).Magnitude
+                
+                -- Check if player is within view cone (adjust 300 for FOV)
+                if distance < 300 and distance < closestDistance then
+                    target = player
+                    closestDistance = distance
+                end
             end
         end
     end
@@ -352,12 +444,18 @@ end
 local ui = SimpleUI:CreateWindow("Combat Menu")
 
 -- ESP Section
-ui:AddButton("Enable WARS ESP", function()
+local enableESPButton = ui:AddButton("Enable WARS ESP", function()
     setupWarsESP()
+    enableESPButton.Text = "WARS ESP Enabled"
+    wait(1)
+    enableESPButton.Text = "Enable WARS ESP"
 end)
 
-ui:AddButton("Disable ESP", function()
+local disableESPButton = ui:AddButton("Disable ESP", function()
     ESP:Toggle(false)
+    disableESPButton.Text = "ESP Disabled"
+    wait(1)
+    disableESPButton.Text = "Disable ESP"
 end)
 
 -- Aimbot Section
@@ -371,28 +469,36 @@ end)
 
 -- Aimbot Logic
 local aiming = false
+local autoDisarmActive = false
 
 uis.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == combatVars.aimbotKey and combatVars.aimbotActive then
         aiming = true
+        autoDisarmActive = true
+        
         while aiming and runService.RenderStepped:Wait() do
-            local enemy = getClosestWarsPlayer()
-            if enemy and enemy.Character and enemy.Character:FindFirstChild("Head") and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                -- Aim at head
-                camera.CFrame = CFrame.new(camera.CFrame.Position, enemy.Character.Head.Position)
+            local enemy = getTargetInView()
+            if enemy and enemy.Character and enemy.Character:FindFirstChild("Head") then
+                -- Smooth aim at head
+                local currentCFrame = camera.CFrame
+                local targetPosition = enemy.Character.Head.Position
+                local newCFrame = CFrame.new(currentCFrame.Position, targetPosition)
+                camera.CFrame = newCFrame
                 
-                -- Auto shoot
-                pcall(function()
-                    local args = {
-                        [1] = {
-                            [1] = enemy.Character.Head.Position.X,
-                            [2] = enemy.Character.Head.Position.Y,
-                            [3] = enemy.Character.Head.Position.Z
-                        },
-                        [2] = enemy.Character.Head
-                    }
-                    game:GetService("ReplicatedStorage").Remotes.ShootRemote:FireServer(unpack(args))
-                end)
+                -- Auto disarm (continuous)
+                if autoDisarmActive then
+                    pcall(function()
+                        local args = {
+                            [1] = {
+                                [1] = targetPosition.X,
+                                [2] = targetPosition.Y,
+                                [3] = targetPosition.Z
+                            },
+                            [2] = enemy.Character.Head
+                        }
+                        game:GetService("ReplicatedStorage").Remotes.ShootRemote:FireServer(unpack(args))
+                    end)
+                end
             end
         end
     end
@@ -401,7 +507,19 @@ end)
 uis.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == combatVars.aimbotKey then
         aiming = false
+        autoDisarmActive = false
     end
+end)
+
+-- Player tracking for ESP updates
+game:GetService("Players").PlayerAdded:Connect(function(player)
+    if ESP.Enabled and isWarsPlayer(player) then
+        ESP:Add(player, {Color = Color3.new(1, 0, 0)})
+    end
+end)
+
+game:GetService("Players").PlayerRemoving:Connect(function(player)
+    ESP:Remove(player)
 end)
 
 -- ESP Update Loop
