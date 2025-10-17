@@ -1,4 +1,4 @@
--- Ultimate Combat Menu with Team Selection
+-- Ultimate Combat Menu - FIXED COLORS
 local plr = game:GetService("Players").LocalPlayer
 local camera = workspace.CurrentCamera
 local uis = game:GetService("UserInputService")
@@ -8,7 +8,7 @@ local MenuData = {
     ScreenGui = nil,
     Connections = {},
     Running = true,
-    ScriptVersion = "4.0",
+    ScriptVersion = "4.1",
     SelectedTeam = "Staff" -- Staff или Enemy
 }
 
@@ -122,7 +122,7 @@ function ESP:IsValidTarget(player)
     return true
 end
 
--- Manual Team Selection System
+-- FIXED Enemy Detection System
 function isEnemyPlayer(player)
     if player == plr then return false end
     if not player.Team then return false end
@@ -130,21 +130,22 @@ function isEnemyPlayer(player)
     local enemyTeam = player.Team.Name
     
     if MenuData.SelectedTeam == "Enemy" then
-        -- Я выбрал "Враг" - подсвечиваем только работников
+        -- Я выбрал "Враг" - подсвечиваем ТОЛЬКО работников (НЕ Class-D и НЕ Chaos)
         return enemyTeam ~= "Class-D" and enemyTeam ~= "Chaos Insurgency"
     else
-        -- Я выбрал "Работник" - подсвечиваем только Class-D и Chaos
+        -- Я выбрал "Работник" - подсвечиваем ТОЛЬКО Class-D и Chaos
         return enemyTeam == "Class-D" or enemyTeam == "Chaos Insurgency"
     end
 end
 
+-- FIXED Color System
 function getEnemyColor(player)
     if not player.Team then return Color3.new(1, 1, 1) end
     
     local enemyTeam = player.Team.Name
     
     if MenuData.SelectedTeam == "Enemy" then
-        -- Цвета для врагов (работников)
+        -- Цвета для врагов (работников) - Class-D и Chaos НЕ должны сюда попадать
         if enemyTeam == "MTF" or enemyTeam == "Nu-7" or enemyTeam == "MTF E-11" then
             return Color3.new(1, 0, 0) -- Красный для военных
         elseif enemyTeam == "Scientists" or enemyTeam == "Medical" then
@@ -569,6 +570,7 @@ function SimpleUI:AddTeamSelector()
             MenuData.SelectedTeam = "Staff"
             updateTeamButtons()
             print("Team set to: Staff - ESP will show Class-D (Yellow) and Chaos (Black)")
+            print("Class-D and Chaos will NOT be highlighted in Enemy mode!")
             if ESP.Enabled then
                 setupEnemyESP()
             end
@@ -580,6 +582,7 @@ function SimpleUI:AddTeamSelector()
             MenuData.SelectedTeam = "Enemy"
             updateTeamButtons()
             print("Team set to: Enemy - ESP will show Staff (Red=MTF, Green=Medics, Blue=Admin)")
+            print("Class-D and Chaos are NOT highlighted in Enemy mode!")
             if ESP.Enabled then
                 setupEnemyESP()
             end
@@ -612,9 +615,15 @@ ui:AddTeamSelector()
 ui:AddButton("Enable Enemy ESP", function()
     setupEnemyESP()
     if MenuData.SelectedTeam == "Enemy" then
-        print("ESP Enabled - Showing Staff: Red=MTF, Green=Medics/Scientists, Blue=Admin")
+        print("ESP Enabled - Showing ONLY Staff:")
+        print("🔴 Red = MTF/Military")
+        print("🟢 Green = Medics/Scientists") 
+        print("🔵 Blue = Admin/Guards")
+        print("❌ Class-D and Chaos are NOT highlighted!")
     else
-        print("ESP Enabled - Showing: Yellow=Class-D, Black=Chaos")
+        print("ESP Enabled - Showing:")
+        print("🟡 Yellow = Class-D")
+        print("⚫ Black = Chaos")
     end
 end)
 
@@ -701,5 +710,5 @@ coroutine.wrap(function()
     print("Press RightShift to open/hide menu")
     print("Press X to completely close the script")
     print("Current Team: " .. MenuData.SelectedTeam)
-    print("Use team buttons to switch between Staff and Enemy mode")
+    print("Class-D and Chaos are NEVER highlighted in Enemy mode!")
 end)()
