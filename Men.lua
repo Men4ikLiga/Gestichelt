@@ -1,4 +1,4 @@
--- Fixed Combat Menu by Koliin
+-- Ultimate Combat Menu by Koliin
 local plr = game:GetService("Players").LocalPlayer
 local camera = workspace.CurrentCamera
 local uis = game:GetService("UserInputService")
@@ -8,7 +8,7 @@ local MenuData = {
     ScreenGui = nil,
     Connections = {},
     Running = true,
-    ScriptVersion = "2.0"
+    ScriptVersion = "3.0"
 }
 
 -- ESP System
@@ -134,12 +134,14 @@ function isEnemyPlayer(player)
     local myTeam = getPlayerTeam()
     local enemyTeam = player.Team.Name
     
-    -- Если я Класс-D или Повстанец Хаоса - враги все кроме Class-D и Chaos
+    -- Если я Класс-D или Повстанец Хаоса
     if myTeam == "Class-D" or myTeam == "Chaos Insurgency" then
+        -- Враги все КРОМЕ Class-D и Chaos
         return enemyTeam ~= "Class-D" and enemyTeam ~= "Chaos Insurgency"
     
-    -- Если я работник - враги только Class-D и Chaos
+    -- Если я работник (НЕ Class-D и НЕ Chaos)
     else
+        -- Враги только Class-D и Chaos
         return enemyTeam == "Class-D" or enemyTeam == "Chaos Insurgency"
     end
 end
@@ -153,14 +155,13 @@ function getEnemyColor(player)
     
     -- Если я Класс-D или Повстанец
     if myTeam == "Class-D" or myTeam == "Chaos Insurgency" then
-        if enemyTeam == "MTF" or enemyTeam == "Nu-7" or enemyTeam == "MTF E-11" then
-            return Color3.new(1, 0, 0) -- Красный для военных
-        elseif enemyTeam == "Scientists" or enemyTeam == "Medical" then
-            return Color3.new(0, 1, 0) -- Зеленый для ученых/медиков
+        -- Все враги красные, кроме медиков и ученых (зеленые) и администрации (синие)
+        if enemyTeam == "Scientists" or enemyTeam == "Medical" then
+            return Color3.new(0, 1, 0) -- Зеленый
         elseif enemyTeam == "Administration" or enemyTeam == "Facility Guard" then
-            return Color3.new(0, 0, 1) -- Синий для администрации/охраны
+            return Color3.new(0, 0, 1) -- Синий
         else
-            return Color3.new(1, 1, 1) -- Белый для остальных
+            return Color3.new(1, 0, 0) -- Красный для всех остальных врагов
         end
     
     -- Если я работник
@@ -168,7 +169,7 @@ function getEnemyColor(player)
         if enemyTeam == "Class-D" then
             return Color3.new(1, 1, 0) -- Желтый для Class-D
         elseif enemyTeam == "Chaos Insurgency" then
-            return Color3.new(1, 0, 0) -- Красный для Chaos
+            return Color3.new(0, 0, 0) -- Черный для Chaos
         else
             return Color3.new(1, 1, 1) -- Белый для остальных
         end
@@ -212,13 +213,13 @@ function ESP:Update()
             if onScreen then
                 if espData.Box then
                     espData.Box.Visible = true
-                    espData.Box.Size = Vector2.new(2000 / position.Z, 3000 / position.Z)
-                    espData.Box.Position = Vector2.new(position.X, position.Y)
+                    espData.Box.Size = Vector2.new(2000 / position.Z, 4000 / position.Z)
+                    espData.Box.Position = Vector2.new(position.X - espData.Box.Size.X / 2, position.Y - espData.Box.Size.Y / 2)
                 end
                 
                 if espData.Name then
                     espData.Name.Visible = true
-                    espData.Name.Position = Vector2.new(position.X, position.Y - 40)
+                    espData.Name.Position = Vector2.new(position.X, position.Y - espData.Box.Size.Y / 2 - 20)
                 end
             else
                 if espData.Box then espData.Box.Visible = false end
@@ -231,10 +232,11 @@ function ESP:Update()
     end
 end
 
--- FIXED Aimbot System with Raycast
+-- Aimbot System
 local combatVars = {
     aimbotKey = Enum.KeyCode.E,
-    aimbotActive = false
+    aimbotActive = false,
+    autoShoot = false
 }
 
 function getTargetInView()
@@ -248,7 +250,7 @@ function getTargetInView()
                 local screenPoint, onScreen = camera:WorldToViewportPoint(head.Position)
                 
                 if onScreen then
-                    -- RAYCAST CHECK - предотвращает стрельбу через стены
+                    -- Raycast check
                     local rayOrigin = camera.CFrame.Position
                     local rayDirection = (head.Position - rayOrigin).Unit * 1000
                     local raycastParams = RaycastParams.new()
@@ -272,7 +274,7 @@ function getTargetInView()
                         local mousePos = Vector2.new(screenPoint.X, screenPoint.Y)
                         local distance = (center - mousePos).Magnitude
                         
-                        if distance < 250 and distance < closestDistance then
+                        if distance < 300 and distance < closestDistance then
                             target = player
                             closestDistance = distance
                         end
@@ -282,6 +284,24 @@ function getTargetInView()
         end
     end
     return target
+end
+
+-- Auto shoot function
+function autoShootAtTarget(target)
+    if target and target.Character and target.Character:FindFirstChild("Head") then
+        pcall(function()
+            local targetPosition = target.Character.Head.Position
+            local args = {
+                [1] = {
+                    [1] = targetPosition.X,
+                    [2] = targetPosition.Y,
+                    [3] = targetPosition.Z
+                },
+                [2] = target.Character.Head
+            }
+            game:GetService("ReplicatedStorage").Remotes.ShootRemote:FireServer(unpack(args))
+        end)
+    end
 end
 
 -- Simple UI
@@ -294,8 +314,8 @@ function SimpleUI:CreateWindow(name)
     screenGui.Parent = game:GetService("CoreGui")
     
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 350, 0, 450)
-    mainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
+    mainFrame.Size = UDim2.new(0, 350, 0, 500)
+    mainFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
     mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     mainFrame.BorderSizePixel = 0
     mainFrame.Active = true
@@ -361,12 +381,20 @@ function SimpleUI:CreateWindow(name)
     
     MenuData.ScreenGui = screenGui
     
+    -- CLOSE BUTTON NOW CLOSES THE ENTIRE SCRIPT
     closeButton.MouseButton1Click:Connect(function()
-        mainFrame.Visible = false
+        MenuData.Running = false
+        ESP:Cleanup()
+        screenGui:Destroy()
+        for _, conn in pairs(MenuData.Connections) do
+            pcall(function() conn:Disconnect() end)
+        end
+        print("Combat Menu closed completely")
     end)
     
+    -- RightShift only hides the menu
     uis.InputBegan:Connect(function(input)
-        if input.KeyCode == Enum.KeyCode.RightShift then
+        if input.KeyCode == Enum.KeyCode.RightShift and MenuData.Running then
             mainFrame.Visible = not mainFrame.Visible
         end
     end)
@@ -385,7 +413,9 @@ function SimpleUI:AddButton(text, callback)
     button.Parent = self.ScrollFrame
     
     button.MouseButton1Click:Connect(function()
-        callback()
+        if MenuData.Running then
+            callback()
+        end
     end)
     
     return button
@@ -421,25 +451,30 @@ function SimpleUI:AddToggle(text, callback)
         else
             toggleIndicator.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
         end
-        callback(state)
+        if MenuData.Running then
+            callback(state)
+        end
     end
     
     toggleButton.MouseButton1Click:Connect(function()
-        state = not state
-        updateToggle()
+        if MenuData.Running then
+            state = not state
+            updateToggle()
+        end
     end)
     
     updateToggle()
     
     return {
         SetState = function(newState)
-            state = newState
-            updateToggle()
+            if MenuData.Running then
+                state = newState
+                updateToggle()
+            end
         end
     }
 end
 
--- ADDED Keybind Selection
 function SimpleUI:AddKeybind(text, defaultKey, callback)
     local keybindFrame = Instance.new("Frame")
     keybindFrame.Size = UDim2.new(1, 0, 0, 35)
@@ -470,7 +505,7 @@ function SimpleUI:AddKeybind(text, defaultKey, callback)
     local listening = false
     
     keybindButton.MouseButton1Click:Connect(function()
-        if not listening then
+        if MenuData.Running and not listening then
             listening = true
             keyText.Text = "..."
             keyText.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
@@ -483,7 +518,9 @@ function SimpleUI:AddKeybind(text, defaultKey, callback)
                     keyText.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
                     listening = false
                     connection:Disconnect()
-                    callback(currentKey)
+                    if MenuData.Running then
+                        callback(currentKey)
+                    end
                 end
             end)
         end
@@ -513,7 +550,7 @@ local ui = SimpleUI:CreateWindow("Combat Menu")
 -- ESP Section
 ui:AddButton("Enable Enemy ESP", function()
     setupEnemyESP()
-    print("ESP Enabled - Colors: Red=MTF, Green=Scientists, Blue=Admin, Yellow=Class-D")
+    print("ESP Enabled - Colors: Red=Enemies, Green=Medics/Scientists, Blue=Admin")
 end)
 
 ui:AddButton("Disable ESP", function()
@@ -525,26 +562,35 @@ local aimbotToggle = ui:AddToggle("Aimbot Active", function(state)
     combatVars.aimbotActive = state
 end)
 
--- ADDED Keybind Selection for Aimbot
+-- ADDED Auto Shoot Toggle
+local autoShootToggle = ui:AddToggle("Auto Shoot", function(state)
+    combatVars.autoShoot = state
+end)
+
 local keybind = ui:AddKeybind("Aimbot Key", Enum.KeyCode.E, function(newKey)
     combatVars.aimbotKey = newKey
     print("Aimbot key changed to: " .. newKey.Name)
 end)
 
--- FIXED Aimbot Logic with Raycast
+-- FIXED Aimbot Logic with Auto Shoot
 local aiming = false
 
 local aimbotConnection = uis.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == combatVars.aimbotKey and combatVars.aimbotActive then
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == combatVars.aimbotKey and combatVars.aimbotActive and MenuData.Running then
         aiming = true
         
-        while aiming and runService.RenderStepped:Wait() do
+        while aiming and MenuData.Running and runService.RenderStepped:Wait() do
             local enemy = getTargetInView()
             if enemy and enemy.Character and enemy.Character:FindFirstChild("Head") then
                 local currentCFrame = camera.CFrame
                 local targetPosition = enemy.Character.Head.Position
                 local newCFrame = CFrame.new(currentCFrame.Position, targetPosition)
                 camera.CFrame = newCFrame
+                
+                -- AUTO SHOOT FUNCTIONALITY
+                if combatVars.autoShoot then
+                    autoShootAtTarget(enemy)
+                end
             end
         end
     end
@@ -559,21 +605,23 @@ end)
 -- Player tracking
 local playerAddedConnection = game:GetService("Players").PlayerAdded:Connect(function(player)
     wait(2)
-    if ESP.Enabled and isEnemyPlayer(player) then
+    if MenuData.Running and ESP.Enabled and isEnemyPlayer(player) then
         local color = getEnemyColor(player)
         ESP:Add(player, {Color = color})
     end
 end)
 
 local playerRemovingConnection = game:GetService("Players").PlayerRemoving:Connect(function(player)
-    ESP:Remove(player)
+    if MenuData.Running then
+        ESP:Remove(player)
+    end
 end)
 
 -- Team change tracking
 coroutine.wrap(function()
     if plr and plr.Team then
         local lastTeam = plr.Team
-        while true do
+        while MenuData.Running do
             wait(3)
             if plr.Team ~= lastTeam then
                 lastTeam = plr.Team
@@ -588,21 +636,24 @@ end)()
 
 -- ESP Update Loop
 local espUpdateConnection = runService.RenderStepped:Connect(function()
-    if ESP.Enabled then
+    if MenuData.Running and ESP.Enabled then
         ESP:Update()
     end
 end)
 
--- Auto setup
-coroutine.wrap(function()
-    wait(5)
-    print("Combat Menu v" .. MenuData.ScriptVersion .. " Loaded!")
-    print("Press RightShift to open menu")
-    print("Current Aimbot Key: " .. combatVars.aimbotKey.Name)
-end)()
-
+-- Store connections
 table.insert(MenuData.Connections, aimbotConnection)
 table.insert(MenuData.Connections, aimbotEndConnection)
 table.insert(MenuData.Connections, playerAddedConnection)
 table.insert(MenuData.Connections, playerRemovingConnection)
 table.insert(MenuData.Connections, espUpdateConnection)
+
+-- Auto setup
+coroutine.wrap(function()
+    wait(5)
+    print("Ultimate Combat Menu v" .. MenuData.ScriptVersion .. " Loaded!")
+    print("Press RightShift to open/hide menu")
+    print("Press X to completely close the script")
+    print("Current Aimbot Key: " .. combatVars.aimbotKey.Name)
+    print("ESP Colors: Red=Main Enemies, Green=Medics/Scientists, Blue=Admin, Yellow=Class-D, Black=Chaos")
+end)()
